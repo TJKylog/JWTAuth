@@ -2,10 +2,22 @@ using JWTAuth;
 using JWTAuth.Helpers;
 using JWTAuth.Models;
 using JWTAuth.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy", builder => builder
+           .AllowAnyOrigin()
+           .AllowAnyMethod()
+           .AllowAnyHeader()
+           .WithExposedHeaders("X-Pagination", "Content-Disposition"));
+
+});
 
 // Add services to the container.
 builder.Services.AddDbContext<JWTAuthDbContext>(options =>
@@ -19,9 +31,9 @@ builder.Services.AddSwaggerGen(swagger =>
     swagger.SwaggerDoc("v1", new() { Title = "JWTAuth", Version = "v1" });
     swagger.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = @"JWT Authorization header using the Bearer scheme. \r\n\r\n 
-                      Enter 'Bearer' [space] and then your token in the text input below.
-                      \r\n\r\nExample: 'Bearer 12345abcdef'",
+        Description = @"JWT Authorization header using the Bearer scheme.<br/>
+                      Enter 'Bearer' [space] and then your token in the text input below.<br/>
+                      Example: 'Bearer 12345abcdef'",
         BearerFormat = "JWT",
         Name = "Authorization",
         In = ParameterLocation.Header,
@@ -47,7 +59,15 @@ builder.Services.AddSwaggerGen(swagger =>
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
 builder.Services.AddScoped<IUserService, UserService>();
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"))
+    .EnableTokenAcquisitionToCallDownstreamApi()
+    .AddMicrosoftGraph(builder.Configuration.GetSection("MicrosoftGraph"))
+    .AddInMemoryTokenCaches();
+
 var app = builder.Build();
+
+app.UseCors("CorsPolicy");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -22,7 +22,7 @@ namespace JWTAuth.Services
 
         public async Task<AuthenticateResponseDTO?> Authenticate(AuthenticateRequestDTO model)
         {
-            var user = await _dbcontext.Users.SingleOrDefaultAsync(x => x.Email == model.Email && x.Password == model.Password);
+            var user = await _dbcontext.Users.SingleOrDefaultAsync(x => x.Email == model.Email);
 
             // return null if user not found
             if (user == null) return null;
@@ -77,7 +77,7 @@ namespace JWTAuth.Services
                 var key = Encoding.ASCII.GetBytes(_settings.Secret);
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
-                    Subject = new ClaimsIdentity(new[] { new Claim("id", user.Id.ToString()) }),
+                    Subject = new ClaimsIdentity(new[] { new Claim("id", user.Id.ToString()), new Claim("email", user.Email) }),
                     Expires = DateTime.UtcNow.AddDays(7),
                     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
                 };
